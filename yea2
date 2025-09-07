@@ -1,0 +1,66 @@
+-- TraceTorsoCursor.lua
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
+
+-- GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TraceGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local cursor = Instance.new("Frame")
+cursor.Size = UDim2.fromOffset(10,10)
+cursor.BackgroundColor3 = Color3.new(1,0,0)
+cursor.BorderSizePixel = 0
+cursor.Position = UDim2.fromOffset(mouse.X, mouse.Y)
+cursor.Visible = false
+cursor.Parent = screenGui
+
+local tracing = false
+local targetTorso = nil
+
+-- Get first other player
+local function getOtherPlayerTorso()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            return p.Character.HumanoidRootPart
+        end
+    end
+    return nil
+end
+
+-- Toggle tracing with T
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.T then
+        tracing = not tracing
+        if tracing then
+            targetTorso = getOtherPlayerTorso()
+            if targetTorso then
+                cursor.Visible = true
+                cursor.Position = UDim2.fromOffset(mouse.X, mouse.Y)
+                print("Now tracing:", targetTorso.Parent.Name)
+            else
+                print("No target found")
+                tracing = false
+            end
+        else
+            cursor.Visible = false
+            targetTorso = nil
+            print("Tracing disabled")
+        end
+    end
+end)
+
+-- Update loop
+RunService.RenderStepped:Connect(function()
+    if tracing and targetTorso and targetTorso:IsDescendantOf(workspace) then
+        local screenPos, onScreen = camera:WorldToViewportPoint(targetTorso.Position)
+        cursor.Visible = onScreen
+        cursor.Position = UDim2.fromOffset(screenPos.X, screenPos.Y)
+    end
+end)
